@@ -1,35 +1,29 @@
 import utility
 import time
 
+from news import *
 from simhash import *
 
 import pdb
 
-class Type2():
-    def __init__(self, news, window_size=20, max_distance=4):
-        self.news = news
+class Type():
+    def __init__(self, input_file_name, max_line=10000, window_size=20, max_distance=4):
+        self.input_file_name = input_file_name
+
+        self.max_line = max_line
         self.window_size = window_size
         self.max_distance = max_distance
 
+        print "Max line: %d" % max_line
         print "Window size: %d" % window_size
         print "Max distance: %d" % max_distance
 
-        fingerprint_values = self.calculate_fingerprint()
-        ids = self.news.ids
+        ids, fingerprint_values = utility.get_fingerprints_for_file(input_file_name, max_line)
+
         self.simhash = SimHash(ids, fingerprint_values)
         self.simhash.sort()
 
-        self.distance = []
         self.similar_pairs = [] # result
-
-    def calculate_fingerprint(self):
-        t = time.time()
-        fingerprint_values = []
-        for news in self.news.all:
-            fingerprint_values.append(utility.simhash(news))
-
-        print "**** Finish calculate_fingerprint(): %f" % (time.time() - t)
-        return fingerprint_values
 
     def naive_detector(self):
         t = time.time()
@@ -84,6 +78,25 @@ class Type2():
     def get_news_id(self, sorted_pos):
         return self.simhash.get_sorted_id(sorted_pos)
 
+    def filter_true_similar_pairs(self):
+        print "**** Start filtering for true similar pairs"
+        # reload news
+        news = News(self.input_file_name, self.max_line)
+
+        set_sim_pairs = set(self.similar_pairs)
+        true_similar_pairs = set()
+
+        self.type1_pairs = set()
+        for (id_1, id_2) in set_sim_pairs:
+            type = news.get_news_type(id_1, id_2)
+            if type == 2:
+                true_similar_pairs.add((id_1, id_2))
+            elif type == 1:
+                self.type1_pairs.add((id_1, id_2))
+
+        self.similar_pairs = set()
+        self.similar_pairs = true_similar_pairs
+
     def detector(self):
         """
         Run naive_detector() multiple times,
@@ -95,26 +108,14 @@ class Type2():
             self.simhash.rotate_left(r_bits = 8, max_bits = 128)
             self.simhash.sort()
 
+        # free memory
+        self.simhash = None
+
         self.analyze_similar_pairs()
         self.filter_true_similar_pairs()
 
         print "**** Finish type2 detector(): %f" % (time.time() - t)
 
-    def filter_true_similar_pairs(self):
-        print "**** Start filtering for true similar pairs"
-        set_sim_pairs = set(self.similar_pairs)
-        true_similar_pairs = set()
-
-        self.type1_pairs = set()
-        for (id_1, id_2) in set_sim_pairs:
-            type = self.news.get_news_type(id_1, id_2)
-            if type == 2:
-                true_similar_pairs.add((id_1, id_2))
-            elif type == 1:
-                self.type1_pairs.add((id_1, id_2))
-
-        self.similar_pairs = set()
-        self.similar_pairs = true_similar_pairs
 
 
 

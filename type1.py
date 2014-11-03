@@ -1,3 +1,5 @@
+import time
+
 from news import *
 
 class Type1():
@@ -27,12 +29,6 @@ class Type1():
                     for j in range(1, len(new_duplicated_values)):
                         news_id_1 = new_duplicated_values[i]
                         news_id_2 = new_duplicated_values[j]
-
-                        # to make sure smaller news_id appear first
-                        if news_id_1 > news_id_2:
-                            temp = news_id_1
-                            news_id_1 = news_id_2
-                            news_id_2 = temp
 
                         result = self.news.compare(news_id_1, news_id_2)
 
