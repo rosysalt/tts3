@@ -11,7 +11,6 @@ C = 100
 class Finn():
     def __init__(self, input_file):
         self.news = News(input_file)
-        self.news.read_news()
 
         self.create_feature_vector()
         self.finn_method()

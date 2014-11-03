@@ -3,6 +3,7 @@ import time
 
 from news import *
 from simhash import *
+from bucket import *
 
 import pdb
 
@@ -18,10 +19,13 @@ class Type():
         print "Window size: %d" % window_size
         print "Max distance: %d" % max_distance
 
-        ids, fingerprint_values = utility.get_fingerprints_for_file(input_file_name, max_line)
+        ids, fingerprint_values, checksum_values = utility.get_fingerprints_for_file(input_file_name, max_line)
 
         self.simhash = SimHash(ids, fingerprint_values)
         self.simhash.sort()
+
+        HASH_TABLE_SIZE = 4561
+        self.bucket = Bucket(HASH_TABLE_SIZE, ids, checksum_values)
 
         self.similar_pairs = [] # result
 
@@ -97,12 +101,32 @@ class Type():
         self.similar_pairs = set()
         self.similar_pairs = true_similar_pairs
 
+    def filter_true_similar_pairs_type3(self):
+        print "**** Start filtering for true similar pairs type 3"
+        # reload news
+        news = News(self.input_file_name, self.max_line)
+
+        set_sim_pairs = set(self.similar_pairs)
+        true_similar_pairs = set()
+
+        self.type1_pairs = set()
+        for (id_1, id_2) in set_sim_pairs:
+            type = news.get_news_type(id_1, id_2)
+            if type != -1:
+                true_similar_pairs.add((id_1, id_2))
+
+        self.similar_pairs = set()
+        self.similar_pairs = true_similar_pairs
+
     def detector(self):
         """
         Run naive_detector() multiple times,
         while rotating the bit of simhash_values
         """
         t = time.time()
+
+        self.detector_type1()
+
         for i in range(0, 16):
             self.naive_detector()
             self.simhash.rotate_left(r_bits = 8, max_bits = 128)
@@ -114,9 +138,33 @@ class Type():
         self.analyze_similar_pairs()
         self.filter_true_similar_pairs()
 
-        print "**** Finish type2 detector(): %f" % (time.time() - t)
+        print "**** Finish type1 & type2 detector(): %f" % (time.time() - t)
 
+    def detector_type1(self):
+        HASH_TABLE_SIZE = 4561
+        duplicated_checksum_doc_list = self.bucket.get_duplicated_checksum_doc_list()
 
+        for item in duplicated_checksum_doc_list:
+            self.similar_pairs.append(item)
 
+    def detector_type3(self):
+        """
+        Run naive_detector() multiple times,
+        while rotating the bit of simhash_values
+        """
+        t = time.time()
+        self.detector_type1()
 
+        for i in range(0, 16):
+            self.naive_detector()
+            self.simhash.rotate_left(r_bits = 4, max_bits = 128)
+            self.simhash.sort()
+
+        # free memory
+        self.simhash = None
+
+        self.analyze_similar_pairs()
+        self.filter_true_similar_pairs_type3()
+
+        print "**** Finish type3 detector(): %f" % (time.time() - t)
 

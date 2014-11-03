@@ -162,13 +162,15 @@ class News():
 
         jd = len(val_1.intersection(val_2)) * 1.0 / len(val_1.union(val_2))
 
-        if jd > 0.98:
+        if jd > 0.9:
             if l1 == l2 and jd == 1:
                 return 1
-            elif abs(l1 - l2) == 1:
+            elif abs(l1 - l2) < 2:
                 return 2
             else:
-                return -1
+                return 3
+        else:
+            return -1
 
 
 

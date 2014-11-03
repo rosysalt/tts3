@@ -13,6 +13,7 @@ class SimHash():
         self.distance = []
 
         if len(ids) != len(values):
+            pdb.set_trace()
             print "ERROR SimHash init()"
             return
 

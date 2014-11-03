@@ -77,6 +77,9 @@ def simhash(tokens):
 
     return long("".join(string), 2)
 
+def checksum(content):
+    return long(hashlib.md5(content).hexdigest(), 16)
+
 def rotate_left(val, r_bits, max_bits):
     """
     http://www.falatic.com/index.php/108/python-and-bitwise-rotation
@@ -88,8 +91,9 @@ def get_fingerprints_for_file(input_file, max_line = 10000):
 
     t = time.time()
 
-    ids = []
-    fingerprint_values = []
+    ids                 = []
+    fingerprint_values  = []
+    checksum_values     = []
     regex = '[\W]+'
 
     count = 0
@@ -98,16 +102,16 @@ def get_fingerprints_for_file(input_file, max_line = 10000):
             if count < max_line:
                 separator_pos   = line.find(" ")
                 _id             = line[:separator_pos]
-                _news           = re.split(regex, line[separator_pos + 1:].lower())
-
-                fingerprint = simhash(_news)
+                content         = line[separator_pos + 1:].lower()
+                _news           = re.split(regex, content)
 
                 ids.append(_id)
-                fingerprint_values.append(fingerprint)
+                fingerprint_values.append(simhash(_news))
+                checksum_values.append(checksum(content))
                 count += 1
             else:
                 break
 
         print "**** Finish read_news: %f" % (time.time() - t)
 
-    return ids, fingerprint_values
+    return ids, fingerprint_values, checksum_values
